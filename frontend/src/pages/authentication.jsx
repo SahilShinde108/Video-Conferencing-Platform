@@ -39,9 +39,8 @@ export default function Authentication() {
         try {
             if (formState === 0) {
 
-                let result = await handleLogin(username, password)
-
-
+                let result = await handleLogin(username, password);
+                console.log(result);
             }
             if (formState === 1) {
                 let result = await handleRegister(name, username, password);
@@ -68,11 +67,11 @@ export default function Authentication() {
                 <CssBaseline />
                 <Grid
                     item
-                    xs={false}
+                    xs={12}
                     sm={4}
                     md={7}
                     sx={{
-                        backgroundImage: 'url(https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D)',
+                        backgroundImage: 'url(https://picsum.photos/1200/900)',
                         backgroundRepeat: 'no-repeat',
                         backgroundColor: (t) =>
                             t.palette.mode === 'light' ? t.palette.grey[50] : t.palette.grey[900],
@@ -149,7 +148,7 @@ export default function Authentication() {
                                 fullWidth
                                 variant="contained"
                                 sx={{ mt: 3, mb: 2 }}
-                                // onClick={handleAuth}
+                                onClick={handleAuth}
                             >
                                 {formState === 0 ? "Login " : "Register"}
                             </Button>
