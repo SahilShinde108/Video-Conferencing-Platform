@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react'
 import "../styles/videoComponent.css"
 import { Button, TextField } from '@mui/material';
+import io from "socket.io-client";
 
 const server_url = "http://localhost:8080";
 
-var connections ={};
+var connections = {};
 
 const peerConfigConnection = {
     'iceServers': [
@@ -23,7 +24,7 @@ export default function VideoMeetComponent() {
 
     let [audioAvailable, setAudioAvailable] = useState(true);
 
-    let [video, setVideo] = useState();
+    let [video, setVideo] = useState([]);
 
     let [audio, setAudio] = useState();
 
@@ -52,35 +53,35 @@ export default function VideoMeetComponent() {
     // }
 
     const getPermissions = async () => {
-        try { 
-            const videoPermision = await navigator.mediaDevices.getUserMedia({video : true});
+        try {
+            const videoPermision = await navigator.mediaDevices.getUserMedia({ video: true });
 
-            if(videoPermision){
+            if (videoPermision) {
                 setVideoAvailable(true);
-            }else {
+            } else {
                 setVideoAvailable(false);
             }
 
-            const audioPermission = await navigator.mediaDevices.getUserMedia({audio : true});
+            const audioPermission = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-            if(audioPermission){
+            if (audioPermission) {
                 setAudioAvailable(true);
-            }else {
+            } else {
                 setAudioAvailable(false);
             }
 
-            if(navigator.mediaDevices.getDisplayMedia){
+            if (navigator.mediaDevices.getDisplayMedia) {
                 setScreenAvailable(true);
-            }else {
+            } else {
                 setScreenAvailable(false);
             }
 
-            if(videoAvailable || audioAvailable){
+            if (videoAvailable || audioAvailable) {
                 const userMediaStream = await navigator.mediaDevices.getUserMedia({ video: videoAvailable, audio: audioAvailable });
-                
-                if(userMediaStream){
+
+                if (userMediaStream) {
                     window.localStream = userMediaStream;
-                    if(localVideoRef.current){
+                    if (localVideoRef.current) {
                         localVideoRef.current.srcObject = userMediaStream;
                     }
                 }
@@ -97,12 +98,13 @@ export default function VideoMeetComponent() {
     let getUserMediaSuccess = (stream) => {
 
     }
+
     let getUserMedia = () => {
-        if((video && videoAvailable) || (audio && audioAvailable)){
+        if ((video && videoAvailable) || (audio && audioAvailable)) {
             navigator.mediaDevices.getUserMedia({ video: video, audio: audio })
-            .then(getUserMediaSuccess)
-            .then((stream) => {})
-            .catch((err) => { console.log(err) });
+                .then(getUserMediaSuccess)
+                .then((stream) => { })
+                .catch((err) => { console.log(err) });
         } else {
             try {
                 let tracks = localVideoRef.current.srcObject.getTracks();
@@ -113,15 +115,112 @@ export default function VideoMeetComponent() {
         }
     }
     useEffect(() => {
-        if(video !== undefined || audio !== undefined){
+        if (video !== undefined || audio !== undefined) {
             getUserMedia();
         }
     }, [audio, video])
 
+    // TODO
+    let gotMessageFromServer = (fromId, message) => {
+
+    }
+
+    let addMessage = () => {
+
+    }
+
+    let connectToSocketServer = () => {
+        socketRef.current = io.connect(server_url, { secure: false });
+
+        socketRef.current.on('signal', gotMessageFromServer);
+
+        socketRef.current.on('connect', () => {
+            socketRef.current.emit("join-call", window.location.href)
+
+            socketIdRef.current = socketRef.current.id;
+
+            socketRef.current.on("chat-message", addMessage);
+
+            socketRef.current.on("user-left", (id) => {
+                setVideo((videos) => videos.filter((video) => video.socketIdRef))
+            });
+
+            socketRef.current.on("user-joined", (id, clients) => {
+                clients.forEach((socketListId) => {
+
+                    connections[socketListId] = new RTCPeerConnection(peerConfigConnection);
+
+                    connections[socketListId].onicecandidate = (event) => {
+                        if(event.candidate != null){
+                            socketRef.current.emit("signal", socketListId, JSON.stringify({"ice": event.candidate}));
+                        }
+                    }
+
+                    connections[socketListId].onaddstream = (event) => {
+
+                        let videoExists = videoRef.current.find(video => video.socketId === socketListId);
+
+                        if(videoExists){
+                            setVideo(videos => {
+                                const updateVideos = videos.map(video => 
+                                    video.socketId === socketListId ? { ...video, stream: event.stream } : video
+                                );
+                                videoRef.current = updateVideos;
+                                return updateVideos;
+                            })
+                        } else {
+
+                            let newVideo = { 
+                                socketId: socketListId, 
+                                stream: event.stream,
+                                autoPlay : true,
+                                playsinline : true
+                            }
+
+                            setVideos(videos => {
+                                const updatedVideos = [...videos, newVideo];
+
+                                videoRef.current = updatedVideos;
+                                return updatedVideos;
+                            })
+                        }
+                    };
+                    
+                    if (window.localStream !== undefined && window.localStream !== null) {
+                        connections[socketListId].addStream(window.localStream);
+                    } else {
+                        // TODO BLACKSILENCE
+                        // Let blackSilence
+                    }
+                })
+
+                if(id === socketIdRef.current){
+                    for(let id2 in connections){
+                        if(id2 === socketIdRef.current) continue;
+
+                        try {
+                            connections[id2].addStream(window.localStream);
+                        } catch (e) {
+                            console.log(e);
+                        }
+
+                        connections[id2].createOffer().then((description) => {
+                            connections[id2].setLocalDescription(description)
+                            .then(() => {
+                                socketRef.current.emit("signal", id2, JSON.stringify({"sdp": connections[id2].localDescription}));
+                            })
+                            .catch(e => console.log(e));
+                        })
+                    }
+                }
+            });
+        });
+    }
+
     let getMedia = () => {
         setVideo(videoAvailable);
         setAudio(audioAvailable);
-        // connectToSocketServer();
+        connectToSocketServer();
     }
 
     let connect = () => {
@@ -131,14 +230,14 @@ export default function VideoMeetComponent() {
 
     return (
         <div>
-            {askForUsername === true ? 
+            {askForUsername === true ?
                 <div>
-                    
+
                     <h2>Enter into Lobby</h2>
                     <TextField id='outlined-basic' label='Username' value={username} variant='outlined' onChange={(e) => setUsername(e.target.value)} />
                     <Button variant='contained' onClick={connect}>Connect</Button>
 
-                    <div> 
+                    <div>
                         <video ref={localVideoRef} autoPlay muted></video>
                     </div>
                 </div> : <></>
