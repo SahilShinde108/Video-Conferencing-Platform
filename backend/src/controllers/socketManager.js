@@ -62,7 +62,7 @@ export const connectToSocket = (server) => {
                     messages[macthingRoom] = []
                 }
                 messages[macthingRoom].push({"sender": sender, "data": data, "socket-id-sender": socket.id})
-                console.log("message", key , ":", sender, data)
+                console.log("message", macthingRoom , ":", sender, data)
             
                 connections[macthingRoom].forEach(elem => {
                 io.to(elem).emit("chat-message", data, sender, socket.id)
