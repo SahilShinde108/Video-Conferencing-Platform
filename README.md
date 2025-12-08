@@ -2,8 +2,15 @@
   <img src="./frontend/public/logo192.png" alt="Video Conferencing Platform Logo" width="120" height="120" />
   <h1>Video Conferencing Platform <br/>- Apna Video Call</h1>
   
+
   <p>
     <strong>Connect seamlessly with high-quality video, audio, and secure authentication.</strong>
+  </p>
+
+  <p>
+    <a href="https://apnavideocall-f97q.onrender.com">
+      <img src="https://img.shields.io/badge/LIVE_DEMO-Click_Here-FF5722?style=for-the-badge&logo=google-chrome&logoColor=white" alt="Live Demo" />
+    </a>
   </p>
 
   <p>
