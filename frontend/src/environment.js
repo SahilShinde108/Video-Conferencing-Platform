@@ -1,6 +1,6 @@
 let IS_PROD = true;
 const server = IS_PROD ?
-    "https://apna-video-call-9tvd.onrender.com" :
+    "https://video-conferencing-platform-29yl.onrender.com" :
 
     "http://localhost:8000"
 
