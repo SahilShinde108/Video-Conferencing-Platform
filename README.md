@@ -85,7 +85,7 @@ Follow these steps to get a local copy up and running.
     Create a `.env` file in the `backend` directory and add your variables:
     ```env
     MONGO_URL=your_mongodb_connection_string
-    PORT=8000
+    PORT=8080
     ```
     Start the backend server:
     ```bash
